@@ -1,0 +1,15 @@
+# Trivy accepted risks. Every entry needs a reason, a compensating control and a review trigger.
+# Reviewed 2026-10-24. Revisit if the budget changes from Rs 0 or the app goes beyond demo traffic.
+
+# AWS-0011 CloudFront without WAF: AWS WAF costs ~$5/month + per-request fees (breaks the Rs 0 budget).
+# Compensating: AWS Shield Standard (free, automatic), app rate limiting (ADR-012), Lambda concurrency cap,
+# CloudFront-only origin (X-Origin-Verify), AWS Budgets alert at $0.01.
+AWS-0011
+
+# AWS-0132 S3 SSE with a customer-managed KMS key: a CMK costs $1/month. The bucket holds only the public SPA build
+# (no user data); SSE-S3 (AES-256) at rest + private bucket + CloudFront OAC is proportionate.
+AWS-0132
+
+# AWS-0010 CloudFront access logging: adds a log bucket and storage cost. Compensating: CloudFront's free
+# standard metrics in CloudWatch, API request logs (JSON, request IDs) in CloudWatch Logs with 7-day retention.
+AWS-0010

@@ -1,0 +1,13 @@
+# Local Kubernetes lab cluster (runs as Docker containers, data on D:\Docker).
+#   kind create cluster --config deploy/k8s/kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: flashcart
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # The web Service is a NodePort on 30080, exposed only on the laptop's loopback interface.
+      - containerPort: 30080
+        hostPort: 8090
+        listenAddress: "127.0.0.1"
+        protocol: TCP

@@ -1,0 +1,61 @@
+# FlashCart local container stack:  docker compose up --build   →  http://127.0.0.1:8080
+# Secrets come from apps/flashcart-api/.env (gitignored, never baked into images).
+# Only the web proxy is published, and only on 127.0.0.1. MongoDB and the API stay on the private network.
+name: flashcart
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the single-node replica set on first start (transactions need one), then reports health.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  seed:
+    image: flashcart-api:local
+    pull_policy: never
+    command: ["python", "-m", "app.seed"]
+    env_file: ./apps/flashcart-api/.env
+    environment: &api-env
+      FLASHCART_MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+      FLASHCART_MONGODB_DB: flashcart
+    depends_on:
+      mongo: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    build: ./apps/flashcart-api
+    image: flashcart-api:local
+    env_file: ./apps/flashcart-api/.env
+    environment: *api-env
+    depends_on:
+      mongo: { condition: service_healthy }
+      seed: { condition: service_completed_successfully }
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  web:
+    build: ./apps/flashcart-web
+    image: flashcart-web:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api: { condition: service_healthy }
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

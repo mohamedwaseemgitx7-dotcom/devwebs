@@ -1,0 +1,49 @@
+# kube-prometheus-stack 92.2.0 values for the local kind lab (Prometheus + Grafana + Kubernetes dashboards).
+#   helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 92.2.0 \
+#     -n monitoring --create-namespace -f deploy/k8s/monitoring/values.yaml
+# Grafana is reached only through `kubectl port-forward` on 127.0.0.1; nothing is exposed beyond the laptop.
+
+grafana:
+  # Admin password comes from a pre-created secret (random, never committed).
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  grafana.ini:
+    auth.anonymous:
+      enabled: true      # read-only dashboards without a login, safe because Grafana is localhost-only
+      org_role: Viewer
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  sidecar:
+    dashboards:
+      searchNamespace: ALL   # pick up the FlashCart dashboard ConfigMap
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 768Mi } # 384Mi was OOMKilled when several dashboards loaded at once (TS-020)
+
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    scrapeInterval: 15s
+    # Discover ServiceMonitors in every namespace, not only ones labelled for this Helm release.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 100m, memory: 400Mi }
+      limits: { memory: 1Gi }
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { memory: 128Mi }
+
+# kind binds these control-plane components to 127.0.0.1 inside the node, so they cannot be scraped.
+# Disabled to avoid permanent false "target down" alerts.
+kubeEtcd: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeProxy: { enabled: false }

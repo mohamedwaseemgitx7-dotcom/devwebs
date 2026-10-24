@@ -1,0 +1,102 @@
+# Prometheus scraping, alert rules and a Grafana dashboard for FlashCart (#103 metrics, #104 alerting).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flashcart-api
+  namespace: flashcart
+spec:
+  selector: { matchLabels: { app: api } }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      # /metrics requires a bearer token; read from the same secret the API uses.
+      authorization:
+        type: Bearer
+        credentials: { name: flashcart-api-env, key: FLASHCART_METRICS_TOKEN }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flashcart-alerts
+  namespace: flashcart
+spec:
+  groups:
+    - name: flashcart
+      rules:
+        - alert: FlashCartHighErrorRate
+          expr: |
+            sum(rate(flashcart_http_requests_total{status=~"5.."}[5m]))
+              / clamp_min(sum(rate(flashcart_http_requests_total[5m])), 1e-9) > 0.05
+          for: 5m
+          labels: { severity: critical }
+          annotations: { summary: "More than 5% of FlashCart API requests are failing" }
+        - alert: FlashCartSlowRequests
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(flashcart_http_request_duration_seconds_bucket[5m]))) > 1
+          for: 10m
+          labels: { severity: warning }
+          annotations: { summary: "FlashCart p95 latency above 1 s" }
+        - alert: FlashCartDatabaseDown
+          expr: min(flashcart_dependency_up{dependency="mongodb"}) == 0
+          for: 1m
+          labels: { severity: critical }
+          annotations: { summary: "FlashCart cannot reach MongoDB" }
+        - alert: FlashCartApiDown
+          expr: up{namespace="flashcart", job="api"} == 0
+          for: 2m
+          labels: { severity: critical }
+          annotations: { summary: "A FlashCart API pod is not answering metrics scrapes" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flashcart-dashboard
+  namespace: monitoring
+  labels: { grafana_dashboard: "1" }
+data:
+  flashcart.json: |
+    {
+      "title": "FlashCart API",
+      "uid": "flashcart-api",
+      "timezone": "browser",
+      "refresh": "10s",
+      "time": { "from": "now-30m", "to": "now" },
+      "schemaVersion": 39,
+      "panels": [
+        { "type": "stat", "title": "Requests / s", "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "targets": [{ "expr": "sum(rate(flashcart_http_requests_total[1m]))" }],
+          "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 } } },
+        { "type": "stat", "title": "Error rate (5xx)", "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+          "targets": [{ "expr": "(sum(rate(flashcart_http_requests_total{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(flashcart_http_requests_total[5m])), 1e-9)" }],
+          "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2,
+            "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.05 }] } } } },
+        { "type": "stat", "title": "p95 latency", "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+          "targets": [{ "expr": "histogram_quantile(0.95, sum by (le) (rate(flashcart_http_request_duration_seconds_bucket[5m])))" }],
+          "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } } },
+        { "type": "stat", "title": "MongoDB up", "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+          "targets": [{ "expr": "min(flashcart_dependency_up{dependency=\"mongodb\"})" }],
+          "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] } } },
+        { "type": "timeseries", "title": "Requests / s by route", "gridPos": { "x": 0, "y": 4, "w": 12, "h": 9 },
+          "targets": [{ "expr": "sum by (route) (rate(flashcart_http_requests_total[1m]))", "legendFormat": "{{route}}" }],
+          "fieldConfig": { "defaults": { "unit": "reqps" } } },
+        { "type": "timeseries", "title": "Latency p50 / p95 / p99", "gridPos": { "x": 12, "y": 4, "w": 12, "h": 9 },
+          "targets": [
+            { "expr": "histogram_quantile(0.50, sum by (le) (rate(flashcart_http_request_duration_seconds_bucket[1m])))", "legendFormat": "p50" },
+            { "expr": "histogram_quantile(0.95, sum by (le) (rate(flashcart_http_request_duration_seconds_bucket[1m])))", "legendFormat": "p95" },
+            { "expr": "histogram_quantile(0.99, sum by (le) (rate(flashcart_http_request_duration_seconds_bucket[1m])))", "legendFormat": "p99" }],
+          "fieldConfig": { "defaults": { "unit": "s" } } },
+        { "type": "timeseries", "title": "Responses by status", "gridPos": { "x": 0, "y": 13, "w": 12, "h": 8 },
+          "targets": [{ "expr": "sum by (status) (rate(flashcart_http_requests_total[1m]))", "legendFormat": "{{status}}" }],
+          "fieldConfig": { "defaults": { "unit": "reqps" } } },
+        { "type": "timeseries", "title": "In-flight requests and rate-limited / s", "gridPos": { "x": 12, "y": 13, "w": 12, "h": 8 },
+          "targets": [
+            { "expr": "sum(flashcart_http_in_flight_requests)", "legendFormat": "in flight" },
+            { "expr": "sum(rate(flashcart_rate_limited_total[1m]))", "legendFormat": "rate limited / s" }] },
+        { "type": "timeseries", "title": "API pod CPU (cores)", "gridPos": { "x": 0, "y": 21, "w": 12, "h": 8 },
+          "targets": [{ "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"flashcart\", container=\"api\"}[1m]))", "legendFormat": "{{pod}}" }] },
+        { "type": "timeseries", "title": "API pod memory", "gridPos": { "x": 12, "y": 21, "w": 12, "h": 8 },
+          "targets": [{ "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"flashcart\", container=\"api\"})", "legendFormat": "{{pod}}" }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } } }
+      ]
+    }

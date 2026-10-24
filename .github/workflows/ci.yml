@@ -1,0 +1,144 @@
+# FlashCart CI/CD: secret scan → lint/tests/audits (API, web) → e2e → container build + scan → IaC checks → deploy gate.
+# Every third-party action is pinned to a full commit SHA (supply-chain safety); CLIs are checksum-verified.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks, full history)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - run: bash scripts/ci/install-tool.sh gitleaks
+      - run: gitleaks git . --config .gitleaks.toml --redact --no-banner
+
+  api:
+    name: API — lint, security, tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults: { run: { working-directory: apps/flashcart-api } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Start MongoDB 8.0 single-node replica set (transactions)
+        working-directory: .
+        run: bash scripts/ci/start-mongo.sh
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with: { version: "0.9.28", python-version: "3.13", enable-cache: true }
+      - run: uv sync --frozen
+      - run: uv run ruff check app tests
+      - run: uv run bandit -r app -c pyproject.toml -q
+      - run: uv run pip-audit
+      - run: uv run pytest -q
+        env:
+          FLASHCART_MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+
+  web:
+    name: Web — types, lint, tests, build, audits
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults: { run: { working-directory: apps/flashcart-web } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.19.0", cache: npm, cache-dependency-path: apps/flashcart-web/package-lock.json }
+      - name: Supply-chain cooldown (packages >= 14 days old)
+        working-directory: .
+        run: python3 scripts/ci/check-npm-age.py --exceptions scripts/ci/npm-age-exceptions.txt apps/flashcart-web/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: End-to-end (Playwright, desktop + mobile)
+    needs: [api, web]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: bash scripts/ci/start-mongo.sh
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with: { version: "0.9.28", python-version: "3.13", enable-cache: true }
+      - run: uv sync --frozen
+        working-directory: apps/flashcart-api
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.19.0", cache: npm, cache-dependency-path: apps/flashcart-web/package-lock.json }
+      - working-directory: apps/flashcart-web
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: apps/flashcart-web/playwright-report
+          retention-days: 7
+
+  containers:
+    name: Containers — build + Trivy scan
+    needs: [secrets]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: bash scripts/ci/install-tool.sh trivy
+      - run: docker build -t flashcart-api:ci apps/flashcart-api
+      - run: docker build -t flashcart-web:ci apps/flashcart-web
+      - name: Fail on fixable HIGH/CRITICAL vulnerabilities or secrets in images
+        run: |
+          for img in flashcart-api:ci flashcart-web:ci; do
+            trivy image --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$img"
+          done
+      - name: Misconfiguration scan (Dockerfiles, compose, Kubernetes, Terraform)
+        run: trivy config --severity HIGH,CRITICAL --ignorefile .trivyignore --exit-code 1 .
+
+  iac:
+    name: Terraform — fmt + validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults: { run: { working-directory: deploy/terraform } }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: bash ../../scripts/ci/install-tool.sh terraform
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  deploy:
+    name: Deploy gate (production)
+    # Disabled until the owner approves Phase 8: set repository variable DEPLOY_ENABLED=true and configure the
+    # "production" environment with required reviewers. The AWS role is assumed via OIDC (no stored keys).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    needs: [e2e, containers, iac]
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - run: echo "Deploy steps are added in Phase 8 after the AWS resources are approved."

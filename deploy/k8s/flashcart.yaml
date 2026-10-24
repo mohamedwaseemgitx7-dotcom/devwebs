@@ -1,0 +1,159 @@
+# FlashCart on Kubernetes (local kind lab). Secrets are NOT in this file: create them from the gitignored .env:
+#   kubectl -n flashcart create secret generic flashcart-api-env --from-env-file=apps/flashcart-api/.env
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flashcart
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+# MongoDB: single-node replica set (transactions need one). Lab only: production uses Atlas.
+apiVersion: v1
+kind: Service
+metadata: { name: mongo, namespace: flashcart }
+spec:
+  clusterIP: None
+  selector: { app: mongo }
+  ports: [{ name: mongo, port: 27017 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: mongo, namespace: flashcart }
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector: { matchLabels: { app: mongo } }
+  template:
+    metadata: { labels: { app: mongo } }
+    spec:
+      # Runs as the image's mongodb user (999) so the pod meets the 'restricted' Pod Security Standard.
+      securityContext: { runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, fsGroup: 999, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: mongo
+          image: mongo:8.0
+          args: ["--replSet", "rs0", "--bind_ip_all"]
+          ports: [{ containerPort: 27017 }]
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval",
+                "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo-0.mongo.flashcart.svc.cluster.local:27017'}]}).ok }"]
+            periodSeconds: 5
+            timeoutSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /data/db }
+            - { name: tmp, mountPath: /tmp }
+            - { name: configdb, mountPath: /data/configdb }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: configdb, emptyDir: {} }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: flashcart-api-config, namespace: flashcart }
+data:
+  FLASHCART_MONGODB_URI: mongodb://mongo-0.mongo.flashcart.svc.cluster.local:27017/?replicaSet=rs0
+  FLASHCART_MONGODB_DB: flashcart
+---
+apiVersion: batch/v1
+kind: Job
+metadata: { name: seed, namespace: flashcart }
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: seed
+          image: flashcart-api:local
+          imagePullPolicy: Never
+          command: ["python", "-m", "app.seed"]
+          envFrom:
+            - secretRef: { name: flashcart-api-env }
+            - configMapRef: { name: flashcart-api-config }   # listed last: overrides the laptop URI in .env
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: api, namespace: flashcart }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: api } }
+  strategy: { rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }
+  template:
+    metadata: { labels: { app: api } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: api
+          image: flashcart-api:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8000 }]
+          envFrom:
+            - secretRef: { name: flashcart-api-env }
+            - configMapRef: { name: flashcart-api-config }   # listed last: overrides the laptop URI in .env
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          readinessProbe: { httpGet: { path: /readyz, port: 8000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /healthz, port: 8000 }, periodSeconds: 10, failureThreshold: 3 }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: api, namespace: flashcart, labels: { app: api } }
+spec:
+  selector: { app: api }
+  ports: [{ name: http, port: 8000, targetPort: 8000 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: web, namespace: flashcart }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: web } }
+  template:
+    metadata: { labels: { app: web } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: flashcart-web:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8080 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          readinessProbe: { httpGet: { path: /, port: 8080 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /, port: 8080 }, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: web, namespace: flashcart }
+spec:
+  type: NodePort
+  selector: { app: web }
+  ports: [{ port: 8080, targetPort: 8080, nodePort: 30080 }]

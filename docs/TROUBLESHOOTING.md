@@ -137,3 +137,21 @@ wrong — kept on purpose, because the wrong path is often the most useful thing
   than the 14-day cooldown, so they are allowed as documented security-fix exceptions via uv `exclude-newer-package`
   (ADR-004). pip-audit: 0 · 78 tests pass. Gitleaks also flagged hex hashes in `graphify-out/cache` (false positive,
   gitignored) — allowlisted in `.gitleaks.toml`.
+
+### TS-019 — Container images: fixable HIGH/CRITICAL CVEs ✅
+- First Trivy image scan: API image had urllib3/msgpack/setuptools CVEs vendored inside the base image's `pip`;
+  web image (`nginx-unprivileged:1.28-alpine`) had 70 HIGH/CRITICAL (nginx 1.28 is end-of-life, stale Alpine).
+  **Fix:** remove pip from the runtime image; move to nginx 1.30.6 stable (security-fix cooldown exception) pinned by
+  digest + `apk upgrade` at build; API base moved Debian 12 → 13 (61 HIGH + 2 CRITICAL unfixed → 44 HIGH unfixed,
+  0 CRITICAL). Result: **0 fixable HIGH/CRITICAL in both images**. CI fails the build on any new fixable one.
+
+### TS-020 — Grafana OOMKilled ✅
+- Opening several dashboards at once pushed Grafana past its 384 Mi limit; the port-forward dropped.
+  **Fix:** limit 768 Mi; port-forward wrapped in a reconnect loop.
+
+### TS-021 — Prometheus scraped nothing from FlashCart ✅
+- ServiceMonitor `selector` matches **Service** labels, and the `api` Service had none (only pods did).
+  **Fix:** label the Service `app: api`. Both API pods now report `up`.
+
+### TS-022 — YAML anchors across `---` documents ✅
+- `kubectl apply` failed with `unknown anchor 'podsec'`: anchors are per YAML document. Expanded them inline.

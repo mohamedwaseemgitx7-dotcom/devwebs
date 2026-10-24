@@ -5,6 +5,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow 
 ## [Unreleased]
 
 ### Added
+- **Containers:** multi-stage, non-root Dockerfiles (API, web/nginx), `compose.yaml` (Mongo replica set + seed + API +
+  web, read-only, caps dropped, only 127.0.0.1:8080 published). Trivy: 0 fixable HIGH/CRITICAL.
+- **Kubernetes (kind):** `deploy/k8s` manifests (restricted Pod Security, probes, limits, rolling updates), verified
+  self-healing (60/60 requests OK while a pod was killed) and scaling 2→4 replicas.
+- **Monitoring:** kube-prometheus-stack 92.2.0 (Prometheus, Alertmanager, Grafana + Kubernetes dashboards),
+  FlashCart ServiceMonitor, 4 alert rules and a FlashCart Grafana dashboard.
+- **Terraform:** AWS Lambda + Function URL, private S3 + CloudFront (OAC, SPA rewrite function, security headers),
+  least-privilege IAM, 7-day logs, AWS Budgets alert, GitHub OIDC deploy role. `validate` passes; nothing applied.
+- **CI/CD:** `.github/workflows/ci.yml` — gitleaks, API and web checks, e2e, image build + Trivy, Terraform
+  validate, deploy gate (disabled until approval). Actions pinned by SHA, CLIs checksum-verified.
 - **FlashCart web** (`apps/flashcart-web`): React 19 + Vite + TypeScript + Tailwind storefront.
   - Product listing with URL-driven search, category/price/colour/rating/shipping/stock filters, sorting, pagination,
     skeleton loading, empty and error states; product details; favorites.
@@ -38,6 +48,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow 
 
 ## [0.1.0] — 2026-10-24
 ### Added
+- **Containers:** multi-stage, non-root Dockerfiles (API, web/nginx), `compose.yaml` (Mongo replica set + seed + API +
+  web, read-only, caps dropped, only 127.0.0.1:8080 published). Trivy: 0 fixable HIGH/CRITICAL.
+- **Kubernetes (kind):** `deploy/k8s` manifests (restricted Pod Security, probes, limits, rolling updates), verified
+  self-healing (60/60 requests OK while a pod was killed) and scaling 2→4 replicas.
+- **Monitoring:** kube-prometheus-stack 92.2.0 (Prometheus, Alertmanager, Grafana + Kubernetes dashboards),
+  FlashCart ServiceMonitor, 4 alert rules and a FlashCart Grafana dashboard.
+- **Terraform:** AWS Lambda + Function URL, private S3 + CloudFront (OAC, SPA rewrite function, security headers),
+  least-privilege IAM, 7-day logs, AWS Budgets alert, GitHub OIDC deploy role. `validate` passes; nothing applied.
+- **CI/CD:** `.github/workflows/ci.yml` — gitleaks, API and web checks, e2e, image build + Trivy, Terraform
+  validate, deploy gate (disabled until approval). Actions pinned by SHA, CLIs checksum-verified.
 - FlashCart API (FastAPI + MongoDB): catalog, cart, favorites, transactional checkout with idempotency keys, orders,
   admin, signed webhooks, auth with refresh-token rotation, health/readiness/metrics, structured logging, rate limiting,
   security headers. 78 backend tests.

@@ -38,9 +38,19 @@ undici 8.12.2, zod 4.6.6 (TS-004). **Remove:** delete `node_modules`.
 Chromium 1248 + headless shell, FFmpeg — installed to `.cache\ms-playwright` via `PLAYWRIGHT_BROWSERS_PATH`
 (default would have been on C:). **Remove:** delete that folder.
 
-## Docker Desktop — ⛔ not installed
-Installer 4.96.3 downloaded to `.tools\downloads` (Authenticode: valid, Docker Inc). Planned flags:
-`--installation-dir=D:\Docker\DockerDesktop --wsl-default-data-root=D:\Docker\wsl`. UAC prompt was cancelled (TS-002).
+## Docker Desktop — ✅ installed 2026-10-24 (owner approved UAC)
+Installer 4.96.3 (Authenticode: valid, Docker Inc) with `--installation-dir=D:\Docker\DockerDesktop`
+`--wsl-default-data-root=D:\Docker\wsl --backend=wsl-2`. Engine 29.9.2. WSL distro `docker-desktop` lives at
+`D:\Docker\wsl\main` (verified in the registry). Licence accepted by the owner in the app.
+**Remove:** Windows Settings → Apps → Docker Desktop → Uninstall, then delete `D:\Docker`.
+
+## Kubernetes lab
+- kind cluster `flashcart` (node v1.37.0) — runs inside Docker. **Remove:** `kind delete cluster --name flashcart`.
+- Helm chart kube-prometheus-stack **92.2.0** (2026-10-08, cooldown-compliant) in namespace `monitoring`.
+  Helm cache/config under `.cache\helm`. Grafana admin password in `.cache\grafana-admin-password.txt` (gitignored).
+
+## Terraform providers
+hashicorp/aws 6.68.0, hashicorp/random 3.7.2 (signed by HashiCorp; lock file committed).
 
 ## Skills / plugins researched (identity verified via GitHub API, none installed yet)
 | Requested name | Canonical repo | License | Relevance / plan |

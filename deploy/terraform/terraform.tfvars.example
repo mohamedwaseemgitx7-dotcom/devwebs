@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (gitignored). Secrets are better passed as environment variables:
+#   $env:TF_VAR_mongodb_uri = "..." ; $env:TF_VAR_jwt_secret = "..." ; etc.
+budget_email = "you@example.com"
+# region     = "ap-south-1"
