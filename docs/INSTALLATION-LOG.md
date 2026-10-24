@@ -46,7 +46,7 @@ Installer 4.96.3 downloaded to `.tools\downloads` (Authenticode: valid, Docker I
 | Requested name | Canonical repo | License | Relevance / plan |
 |---|---|---|---|
 | NVIDIA Skillspector | NVIDIA/SkillSpector | Apache-2.0 | High — scan any skill before installing it |
-| Graphify | Graphify-Labs/graphify (moved from safishamsi) | Apache-2.0 | Medium — knowledge graph; Mermaid fallback meanwhile |
+| Graphify | Graphify-Labs/graphify (moved from safishamsi) | Apache-2.0 | ✅ Installed CLI `graphifyy` 0.9.83 (2026-10-09, cooldown-compliant) via `uv tool` into `.tools\uv-tools` / `.tools\bin`. Used code-only mode (`graphify update .`, tree-sitter, no LLM, nothing uploaded). Skill/hooks (`graphify install`) **not** registered. Output `graphify-out/` (gitignored). Remove: `uv tool uninstall graphifyy` with the same `UV_TOOL_DIR` |
 | Impeccable | pbakaus/impeccable | Apache-2.0 | Medium — UI polish audit |
 | Taste | Leonxlnx/taste-skill | MIT | Low — overlaps Impeccable |
 | awesome-design-md | VoltAgent/awesome-design-md | MIT | Reference only |

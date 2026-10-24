@@ -130,3 +130,10 @@ wrong — kept on purpose, because the wrong path is often the most useful thing
 ### TS-017 — React hooks lint: setState inside effects ✅
 - `react-hooks/set-state-in-effect` flagged URL→state syncing in effects (extra render passes). Replaced with the
   React-recommended "adjust state during render" pattern; the cart merge now updates state in async callbacks.
+
+### TS-018 — pip-audit: new advisories in dev-only filelock and certifi ✅
+- Re-audit before push found CVE-2026-112907/112913/112937 (filelock 4.1.0) and PYSEC-2026-4320 (certifi 2026.7.22),
+  both pulled in by test/audit tooling (pip-audit, httpx). Fixed versions (filelock 4.2.1, certifi 2026.10.19) are newer
+  than the 14-day cooldown, so they are allowed as documented security-fix exceptions via uv `exclude-newer-package`
+  (ADR-004). pip-audit: 0 · 78 tests pass. Gitleaks also flagged hex hashes in `graphify-out/cache` (false positive,
+  gitignored) — allowlisted in `.gitleaks.toml`.

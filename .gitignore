@@ -102,3 +102,6 @@ references/*.pdf
 references/*.jpg
 references/*.jpeg
 references/*.png
+
+# Graphify knowledge-graph output (regenerate with: graphify update .)
+graphify-out/

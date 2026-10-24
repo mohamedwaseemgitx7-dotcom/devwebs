@@ -19,6 +19,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow 
   - 22 unit/component tests (Vitest) and 8 Playwright end-to-end tests on an isolated stack, with screenshots in
     `docs/screenshots/`.
 - `scripts/ci/check-npm-age.py` supply-chain cooldown check + documented security exceptions.
+- Graphify 0.9.83 code knowledge graph (local, code-only; `graphify-out/` gitignored).
 - API: `active` field on product responses (admin visibility state).
 - Docs: README progress tracker, PROJECT-STATUS, TROUBLESHOOTING (17 entries), DECISIONS (14 ADRs), INSTALLATION-LOG.
 
@@ -32,6 +33,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow 
 - Product cards not full-width on mobile (TS-016).
 
 ### Security
+- Python dev deps: filelock 4.1.0 → 4.2.1 and certifi 2026.7.22 → 2026.10.19 (security-fix cooldown exceptions, TS-018).
 - npm overrides for undici 8.12.2 and zod 4.6.6 (high-severity advisories in dev dependencies) — `npm audit`: 0.
 
 ## [0.1.0] — 2026-10-24

@@ -12,4 +12,5 @@ paths = [
   '''(^|/)\.tools-venv/''',
   '''(^|/)\.cache/''',
   '''(^|/)\.data/''',
+  '''(^|/)graphify-out/''',   # Graphify file-hash cache (false positive on hex hashes)
 ]

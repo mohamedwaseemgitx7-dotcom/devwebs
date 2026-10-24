@@ -28,6 +28,10 @@ dev = [
 [tool.uv]
 # Supply-chain cooldown: never resolve a package version published in the last 14 days (ADR-004).
 exclude-newer = "2026-10-10T00:00:00Z"
+# Security-fix exceptions (ADR-004), dev-only deps. Remove once older than the cooldown:
+#   filelock 4.2.1 - CVE-2026-112907/112913/112937 (via pip-audit)
+#   certifi 2026.10.19 - PYSEC-2026-4320 (via httpx test client, pip-audit)
+exclude-newer-package = { filelock = "2026-10-18T00:00:00Z", certifi = "2026-10-21T00:00:00Z" }
 package = false
 
 [tool.pytest.ini_options]
