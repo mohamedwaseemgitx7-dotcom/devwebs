@@ -79,6 +79,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - run: bash scripts/ci/start-mongo.sh
+      - name: Throwaway API settings for this run (random secrets, masked, never stored)
+        run: |
+          for name in JWT_SECRET WEBHOOK_SECRET; do
+            value="$(openssl rand -hex 32)"
+            echo "::add-mask::$value"
+            echo "FLASHCART_${name}=$value" >> "$GITHUB_ENV"
+          done
+          echo "FLASHCART_MONGODB_URI=mongodb://127.0.0.1:27017/?replicaSet=rs0" >> "$GITHUB_ENV"
+          echo "FLASHCART_COOKIE_SECURE=false" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with: { version: "0.9.28", python-version: "3.13", enable-cache: true }
       - run: uv sync --frozen

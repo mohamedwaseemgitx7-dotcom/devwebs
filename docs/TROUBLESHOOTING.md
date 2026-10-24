@@ -155,3 +155,8 @@ wrong — kept on purpose, because the wrong path is often the most useful thing
 
 ### TS-022 — YAML anchors across `---` documents ✅
 - `kubectl apply` failed with `unknown anchor 'podsec'`: anchors are per YAML document. Expanded them inline.
+
+### TS-023 — CI e2e: API could not start (missing settings) ✅
+- Locally the e2e API reads the gitignored `.env`; on GitHub there is none, so `Settings` failed (mongodb_uri,
+  jwt_secret, webhook_secret missing). **Fix:** the e2e job generates random per-run secrets with `openssl`, masks them
+  in logs and exports them via `GITHUB_ENV`. Nothing is stored in the repo or in GitHub secrets.
