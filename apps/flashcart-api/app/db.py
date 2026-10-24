@@ -60,7 +60,7 @@ VALIDATORS: dict[str, dict] = {
             "name": {"bsonType": "string", "maxLength": 100},
             "password_hash": {"bsonType": "string"},
             "role": {"enum": ["customer", "admin"]},
-            "token_version": {"bsonType": "int", "minimum": 0},
+            "session_version": {"bsonType": "int", "minimum": 0},
         },
     },
     "products": {

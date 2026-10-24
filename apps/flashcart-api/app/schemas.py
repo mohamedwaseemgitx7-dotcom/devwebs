@@ -100,6 +100,7 @@ class ProductOut(BaseModel):
     stock: int
     location: str
     version: int
+    active: bool = True
 
 
 class ProductPage(BaseModel):

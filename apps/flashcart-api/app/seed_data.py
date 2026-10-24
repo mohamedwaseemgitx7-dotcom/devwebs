@@ -104,7 +104,8 @@ def slugify(text: str) -> str:
 
 
 def build_products(seed: int = 42) -> list[dict]:
-    rng = random.Random(seed)  # deterministic demo data  # noqa: S311  # nosec B311 - demo data, not security-sensitive
+    # Deterministic demo data, not security-sensitive, so a non-cryptographic PRNG is correct here.
+    rng = random.Random(seed)  # noqa: S311  # nosec B311
     products = []
     for i, (name, brand, category, kind, rupees, colors) in enumerate(CATALOG, start=1):
         sku = f"FC-{category[:3].upper()}-{i:04d}"

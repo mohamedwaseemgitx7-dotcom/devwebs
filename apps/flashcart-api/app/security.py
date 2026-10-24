@@ -44,13 +44,13 @@ def _key_id(secret: str) -> str:
     return hashlib.sha256(secret.encode()).hexdigest()[:8]
 
 
-def create_access_token(settings: Settings, *, user_id: str, role: str, token_version: int) -> str:
+def create_access_token(settings: Settings, *, user_id: str, role: str, session_version: int) -> str:
     secret = settings.jwt_secret.get_secret_value()
     now = datetime.now(UTC)
     claims = {
         "sub": user_id,
         "role": role,
-        "tv": token_version,
+        "tv": session_version,
         "iat": now,
         "nbf": now,
         "exp": now + timedelta(minutes=settings.access_token_minutes),

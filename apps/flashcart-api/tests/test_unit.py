@@ -26,7 +26,7 @@ def test_password_hash_roundtrip_and_no_plaintext():
 
 def test_jwt_roundtrip_and_tamper_detection():
     s = make_settings()
-    token = create_access_token(s, user_id="64b000000000000000000000", role="customer", token_version=0)
+    token = create_access_token(s, user_id="64b000000000000000000000", role="customer", session_version=0)
     assert decode_access_token(s, token)["sub"] == "64b000000000000000000000"
     other = make_settings(jwt_secret="x" * 48)
     with pytest.raises(jwt.InvalidSignatureError):
@@ -38,7 +38,7 @@ def test_jwt_roundtrip_and_tamper_detection():
 
 def test_jwt_rotation_accepts_previous_key():
     old = make_settings(jwt_secret="o" * 48)
-    token = create_access_token(old, user_id="64b000000000000000000000", role="customer", token_version=0)
+    token = create_access_token(old, user_id="64b000000000000000000000", role="customer", session_version=0)
     rotated = make_settings(jwt_secret="n" * 48, jwt_secret_previous="o" * 48)
     assert decode_access_token(rotated, token)["sub"] == "64b000000000000000000000"
 
@@ -107,7 +107,8 @@ def test_webhook_signature_verification():
 
 
 def test_log_redaction():
-    line = 'connecting mongodb+srv://user:pa55@cluster0.example.net/db password="hunter2" ' \
-           'Authorization: Bearer abc eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N'  # gitleaks:allow - fabricated test token
+    fake_jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N"  # gitleaks:allow (fake)
+    line = ('connecting mongodb+srv://user:pa55@cluster0.example.net/db password="hunter2" '
+            f"Authorization: Bearer abc {fake_jwt}")
     out = redact(line)
     assert "pa55" not in out and "hunter2" not in out and "eyJhbGciOiJIUzI1NiJ9" not in out

@@ -70,7 +70,7 @@ async def _issue_tokens(
         path=COOKIE_PATH,
     )
     access = create_access_token(
-        settings, user_id=str(user["_id"]), role=user["role"], token_version=user.get("token_version", 0)
+        settings, user_id=str(user["_id"]), role=user["role"], session_version=user.get("session_version", 0)
     )
     response.headers["Cache-Control"] = "no-store"
     return TokenOut(access_token=access, expires_in=settings.access_token_minutes * 60, user=_user_out(user))
@@ -85,7 +85,7 @@ async def signup(body: SignupIn, request: Request, response: Response, settings:
         "name": body.name,
         "password_hash": hash_password(body.password),
         "role": "customer",  # role is never taken from the request
-        "token_version": 0,  # nosec B105 - session counter
+        "session_version": 0,
         "created_at": datetime.now(UTC),
     }
     try:
@@ -167,8 +167,8 @@ async def logout(
 
 @router.post("/logout-all", status_code=204)
 async def logout_all(user: UserDep, request: Request, response: Response, db: DbDep):
-    """Invalidates every session: bumps token_version (kills access tokens) and revokes refresh tokens."""
-    await db["users"].update_one({"_id": user.id}, {"$inc": {"token_version": 1}})  # nosec B105 - session counter
+    """Invalidates every session: bumps session_version (kills access tokens) and revokes refresh tokens."""
+    await db["users"].update_one({"_id": user.id}, {"$inc": {"session_version": 1}})
     await db["refresh_tokens"].update_many({"user_id": user.id}, {"$set": {"revoked": True}})
     await audit(db, "auth.logout_all", actor_id=user.id, ip=client_ip(request))
     response.delete_cookie(REFRESH_COOKIE, path=COOKIE_PATH)

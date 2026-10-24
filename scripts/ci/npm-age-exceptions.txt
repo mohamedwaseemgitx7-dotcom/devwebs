@@ -1,0 +1,4 @@
+# Package versions allowed to be newer than the 14-day cooldown because they FIX a known vulnerability.
+# Format: name@version  # advisory, reason, date added. Remove once older than the cooldown.
+undici@8.12.2  # GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472, GHSA-xjj6-f33q-929c (high) via jsdom (dev-only) - 2026-10-24
+zod@4.6.6      # GHSA-mrhx-c7xc-m3w5 (high) via eslint-plugin-react-hooks (dev-only) - 2026-10-24

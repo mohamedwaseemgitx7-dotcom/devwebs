@@ -43,6 +43,7 @@ def to_product_out(doc: dict) -> ProductOut:
         stock=doc["stock"],
         location=doc.get("location", ""),
         version=doc["version"],
+        active=doc.get("active", True),
     )
 
 

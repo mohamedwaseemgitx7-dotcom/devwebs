@@ -41,7 +41,7 @@ async def bootstrap_admin(settings: Settings) -> None:
             "name": "Administrator",
             "password_hash": hash_password(settings.admin_password.get_secret_value()),
             "role": "admin",
-            "token_version": 0,  # nosec B105 - session counter, not a password
+            "session_version": 0,
             "created_at": datetime.now(UTC),
         }},
         upsert=True,

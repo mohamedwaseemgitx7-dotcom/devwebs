@@ -57,11 +57,11 @@ async def current_user(
         user_id = ObjectId(claims["sub"])
     except (jwt.PyJWTError, KeyError, ValueError, TypeError):
         raise _UNAUTH from None
-    # Re-read the user so role changes, deactivation and "log out everywhere" (token_version bump) apply
+    # Re-read the user so role changes, deactivation and "log out everywhere" (session_version bump) apply
     # immediately instead of when the token expires.
-    user = await db["users"].find_one({"_id": user_id}, {"email": 1, "name": 1, "role": 1, "token_version": 1,  # nosec B105 - projection field name, not a password
-                                                          "disabled": 1})
-    if not user or user.get("disabled") or user.get("token_version", 0) != claims.get("tv"):
+    projection = {"email": 1, "name": 1, "role": 1, "session_version": 1, "disabled": 1}
+    user = await db["users"].find_one({"_id": user_id}, projection)
+    if not user or user.get("disabled") or user.get("session_version", 0) != claims.get("tv"):
         raise _UNAUTH
     request.state.user_id = str(user_id)
     return CurrentUser(id=user_id, email=user["email"], name=user.get("name", ""), role=user["role"])

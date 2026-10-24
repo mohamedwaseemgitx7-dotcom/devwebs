@@ -91,7 +91,7 @@ async def make_admin(client: httpx.AsyncClient, db) -> dict:
     email = f"admin-{secrets.token_hex(4)}@example.com"
     from datetime import UTC, datetime
     await db["users"].insert_one({"email": email, "name": "Admin", "password_hash": hash_password(PASSWORD),
-                                  "role": "admin", "token_version": 0, "created_at": datetime.now(UTC)})
+                                  "role": "admin", "session_version": 0, "created_at": datetime.now(UTC)})
     r = await client.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
     assert r.status_code == 200, r.text
     token = r.json()["access_token"]
