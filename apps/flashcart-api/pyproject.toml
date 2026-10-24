@@ -1,0 +1,54 @@
+[project]
+name = "flashcart-api"
+version = "0.1.0"
+description = "FlashCart e-commerce API (FastAPI + MongoDB)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic-settings>=2.4",
+    "email-validator>=2.2",
+    "pymongo>=4.10",
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.9",
+    "mangum>=0.19",
+    "prometheus-client>=0.21",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.7",
+    "bandit>=1.7",
+    "pip-audit>=2.7",
+]
+
+[tool.uv]
+# Supply-chain cooldown: never resolve a package version published in the last 14 days (ADR-004).
+exclude-newer = "2026-10-10T00:00:00Z"
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "S", "UP", "ASYNC"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"app/seed_data.py" = ["E501"]  # SVG artwork strings
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

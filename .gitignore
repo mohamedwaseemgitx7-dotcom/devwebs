@@ -1,0 +1,104 @@
+# ---- Secrets & credentials (never commit) ----
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials
+credentials.json
+*.kubeconfig
+.aws/
+secrets/
+*.secret
+*.secrets.yaml
+
+# ---- Local tooling, caches, downloads (kept on D:, not in git) ----
+.tools/
+.tools-venv/
+.cache/
+.tools-install.log
+references/pdf-pages/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ---- Node / frontend ----
+node_modules/
+**/dist/
+**/build/
+.vite/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+
+# ---- Local databases & data ----
+.data/
+*.sqlite
+*.sqlite3
+*.db
+mongo-data/
+backups/*.archive
+backups/*.gz
+!backups/.gitkeep
+
+# ---- Logs (may contain request data) ----
+*.log
+logs/
+!docs/**/*.log.md
+
+# ---- Terraform state & sensitive artifacts ----
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*.auto.tfvars
+terraform.tfvars
+!**/terraform.tfvars.example
+
+# ---- Lambda build artifacts ----
+**/lambda-package/
+*.zip
+
+# ---- Test data that may contain PII/secrets ----
+tests/fixtures/private/
+load-tests/results/raw/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# ---- Third-party reference material (copyrighted; kept locally, not published) ----
+references/*.pdf
+references/*.jpg
+references/*.jpeg
+references/*.png

@@ -1,0 +1,15 @@
+# Gitleaks configuration: default ruleset + path allowlist for third-party/vendored directories that are
+# never committed (they are also in .gitignore). Real project files are always scanned.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Vendored dependencies, tool downloads and caches (gitignored, not project code)"
+paths = [
+  '''(^|/)\.venv/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.tools/''',
+  '''(^|/)\.tools-venv/''',
+  '''(^|/)\.cache/''',
+  '''(^|/)\.data/''',
+]
