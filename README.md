@@ -20,7 +20,7 @@ built end-to-end as a DevOps / SRE / cloud portfolio project on a **₹0 budget*
 > Next: CI/CD pipeline (Phase 5) and the remaining planning documents (Phase 2). Atlas (Phase 4) waits on the owner.
 
 ```
-Overall progress  [█████████░░░░░░░░░░░░░░░░░░░░░]  ~30%
+Overall progress  [██████████████░░░░░░░░░░░░░░░░]  ~45%
 ```
 
 **Legend:** ✅ done & verified · 🟡 in progress · ⬜ not started · ⛔ blocked (needs owner action)
@@ -31,9 +31,9 @@ Overall progress  [█████████░░░░░░░░░░░�
 | 2 | PRD, scope, architecture, data model, API spec, threat model, cost analysis | 🟡 | 5 of 21 docs done (status, decisions, troubleshooting, installation log, changelog) |
 | 3 | Build FlashCart (frontend + backend) locally | ✅ | Backend ✅ · Frontend ✅ — storefront, cart, checkout, orders, auth, admin, responsive |
 | 4 | MongoDB Atlas integration | ⬜ | Needs owner to create the Atlas M0 cluster (local MongoDB used until then) |
-| 5 | Automated tests, GitHub Actions, Docker, security scans | 🟡 | Backend + frontend + e2e tests ✅ · local scans ✅ · CI ⬜ · Docker ⛔ (UAC prompt cancelled) |
+| 5 | Automated tests, GitHub Actions, Docker, security scans | ✅ | CI green · Docker images (0 fixable HIGH/CRITICAL) · kind + Prometheus/Grafana |
 | 6 | Controlled load testing (k6) | ⬜ | k6 installed; tests not written |
-| 7 | Terraform + free-tier deployment config | ⬜ | Terraform installed; no config yet |
+| 7 | Terraform + free-tier deployment config | 🟡 | Lambda + S3 + CloudFront + budget + OIDC written and validated; `plan` needs AWS |
 | 8 | Deploy FlashCart (after approval) | ⬜ | Needs AWS account + owner approval of the exact resource list |
 | 9 | Build CloudOps Sentinel and connect to FlashCart | ⬜ | Backend already exposes `/api/v1/health`, `/metrics`, audit log for it |
 | 10 | Failure simulations, incident reports, postmortems | ⬜ | |

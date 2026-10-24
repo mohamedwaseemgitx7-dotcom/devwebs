@@ -1,7 +1,7 @@
 # Project Status
 
-**Last updated:** 2026-10-24 · **Current level:** Phase 3 of 11 ✅ complete — FlashCart runs end-to-end locally.
-**Next:** Phase 5 CI/CD pipeline + remaining Phase 2 documents. Phase 4 (Atlas) waits on the owner.
+**Last updated:** 2026-10-24 · **Current level:** Phases 1, 3, 5 ✅ — FlashCart runs locally, in Docker and on Kubernetes; CI is green.
+**Next:** AWS account (owner) → `terraform plan` review → Atlas (Phase 4) → k6 load tests (Phase 6); remaining Phase 2 docs.
 
 **Legend:** ✅ done & verified · 🟡 in progress · ⬜ not started · ⛔ blocked (needs owner action)
 
@@ -10,14 +10,14 @@ Phase  1  Inspect & research        [██████████] ✅
 Phase  2  Planning documents        [███░░░░░░░] 🟡  5 of 21 docs
 Phase  3  Build FlashCart locally   [██████████] ✅  frontend + backend
 Phase  4  MongoDB Atlas             [░░░░░░░░░░] ⬜  needs owner
-Phase  5  Tests, CI/CD, Docker      [█████░░░░░] 🟡  tests ✅, CI ⬜, Docker ⛔
+Phase  5  Tests, CI/CD, Docker      [██████████] ✅  CI green, Docker + kind + Grafana
 Phase  6  Load testing              [░░░░░░░░░░] ⬜
-Phase  7  Terraform / IaC           [░░░░░░░░░░] ⬜
+Phase  7  Terraform / IaC           [██████░░░░] 🟡  written + validated; plan needs AWS
 Phase  8  Deploy (approved)         [░░░░░░░░░░] ⬜
-Phase  9  CloudOps Sentinel         [░░░░░░░░░░] ⬜
+Phase  9  CloudOps Sentinel         [██░░░░░░░░] 🟡  Prometheus/Grafana/alerts foundation
 Phase 10  Failure simulations       [░░░░░░░░░░] ⬜
 Phase 11  Final audit & docs        [░░░░░░░░░░] ⬜
-Overall ≈ 30%
+Overall ≈ 45%
 ```
 
 ---
@@ -58,9 +58,10 @@ Overall ≈ 30%
 - ✅ Backend: 78 tests · Frontend: 22 unit/component tests · E2E: 8 Playwright tests (desktop + mobile, 5/5 green runs)
 - ✅ ruff · bandit 0 issues · pip-audit 0 · npm audit 0 · gitleaks clean · supply-chain age check
 - ✅ GitHub secret scanning + push protection + Dependabot alerts
-- ⬜ GitHub Actions pipeline (lint → tests → audits → secret scan → Docker build → Trivy → deploy gate)
-- ⬜ Dockerfiles + docker-compose
-- ⛔ Docker Desktop: UAC prompt was cancelled — needs owner approval to retry
+- ✅ GitHub Actions pipeline green (run 40108125943): gitleaks → API → web → e2e → images + Trivy → Terraform validate → deploy gate (disabled)
+- ✅ Dockerfiles + compose (non-root, read-only); Trivy 0 fixable HIGH/CRITICAL
+- ✅ Docker Desktop on D:; kind cluster; kube-prometheus-stack with FlashCart dashboard + alerts
+- ✅ Self-healing (60/60 requests OK while a pod was killed) and scaling 2→4 verified
 
 ## Phases 6–11 ⬜
 Not started.
@@ -74,9 +75,9 @@ TS-016 mobile card width — details in [TROUBLESHOOTING](TROUBLESHOOTING.md).
 ## Owner actions needed
 | Needed for | Action | Status |
 |---|---|---|
-| Docker / Kubernetes | Approve the UAC prompt for Docker Desktop (installs to `D:\Docker`) | ⛔ waiting |
+| Docker / Kubernetes | Approve the UAC prompt for Docker Desktop | ✅ done |
 | Phase 4 | Create MongoDB Atlas account + M0 cluster | ⬜ |
-| Phase 8 | AWS account; approve the exact free-tier resource list | ⬜ |
+| Phase 7–8 | Finish AWS sign-up (Free plan, MFA); then review `terraform plan` | ⬜ in progress |
 | Housekeeping | Keep or delete the duplicate `FlashCart-CloudOps` GitHub repo | ⬜ optional |
 
 ## Repositories
